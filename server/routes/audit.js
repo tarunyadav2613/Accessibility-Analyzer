@@ -15,7 +15,7 @@ router.post("/", async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: puppeteer.executablePath(), // ✅ use installed Chrome
+      executablePath: puppeteer.executablePath(), // ✅ This tells Puppeteer where Chrome is
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
