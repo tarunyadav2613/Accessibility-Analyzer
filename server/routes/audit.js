@@ -14,10 +14,15 @@ router.post("/", async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      headless: "new", // Node 18+ can use true
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-
+  headless: true, // required for Render
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-zygote"
+  ]
+});
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "networkidle2" });
 
