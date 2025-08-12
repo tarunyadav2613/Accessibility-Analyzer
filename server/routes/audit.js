@@ -14,15 +14,16 @@ router.post("/", async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-  headless: true, // required for Render
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-gpu",
-    "--no-zygote"
-  ]
-});
+      headless: true,
+      executablePath: puppeteer.executablePath(), // ✅ use installed Chrome
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--no-zygote",
+      ],
+    });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "networkidle2" });
 
