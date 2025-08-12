@@ -15,7 +15,8 @@ router.post("/", async (req, res) => {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: puppeteer.executablePath(), // ✅ This tells Puppeteer where Chrome is
+      executablePath:
+        process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",

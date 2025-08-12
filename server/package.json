@@ -20,5 +20,11 @@
     "lighthouse": "^12.8.0",
     "mongoose": "^8.16.5",
     "puppeteer": "^24.15.0"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "puppeteer": {
+    "executablePath": "/opt/render/.cache/puppeteer/chrome/linux-138.0.7204.168/chrome-linux64/chrome"
   }
 }
