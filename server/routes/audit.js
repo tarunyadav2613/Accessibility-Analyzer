@@ -4,26 +4,26 @@ const Audit = require("../models/AuditResult");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 
-// Load axe.min.js from axe-core package
-const axeScript = fs.readFileSync(
-  require.resolve("axe-core/axe.min.js"),
-  "utf8"
-);
+// Load axe.min.js from axe-core package safely
+let axeScript;
+try {
+  axeScript = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+} catch (err) {
+  console.error("❌ Failed to load axe-core script:", err);
+}
 
-/**
- * ✅ POST /api/audit
- * Run accessibility audit for a given URL
- */
 router.post("/", async (req, res) => {
-  const { url } = req.body; // ✅ inside the function, not at the top of the file
+  const { url } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: "URL is required" });
   }
 
+  let browser;
   try {
-    console.log("Launching Puppeteer at:", process.env.PUPPETEER_EXECUTABLE_PATH);
-    const browser = await puppeteer.launch({
+    console.log("🚀 Launching Puppeteer at:", process.env.PUPPETEER_EXECUTABLE_PATH);
+
+    browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       args: [
@@ -36,17 +36,27 @@ router.post("/", async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle2" });
 
-    await page.evaluate(axeScript);
+    console.log("🌐 Navigating to: ${url}");
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 })
+      .catch(err => { throw new Error("Navigation failed: " + err.message); });
 
-    const results = await page.evaluate(async () => await axe.run());
+    console.log("🔍 Injecting axe-core script...");
+    await page.evaluate(axeScript)
+      .catch(err => { throw new Error("Failed to inject axe-core: " + err.message); });
+
+    console.log("📊 Running accessibility audit...");
+    const results = await page.evaluate(async () => await axe.run())
+      .catch(err => { throw new Error("axe.run() failed: " + err.message); });
+
+    console.log("✅ Audit completed, closing browser...");
     await browser.close();
 
+    console.log("💾 Saving audit result...");
     const audit = new Audit({
       url,
       score: Math.max(0, 100 - results.violations.length * 5),
-      issues: results.violations.map((issue) => ({
+      issues: results.violations.map(issue => ({
         type: issue.id,
         message: issue.description,
         impact: issue.impact,
@@ -58,19 +68,17 @@ router.post("/", async (req, res) => {
     res.json(audit);
 
   } catch (error) {
-    console.error("Error during audit:", error);
+    console.error("❌ Error during audit:", error);
+    if (browser) {
+      try { await browser.close(); } catch (_) {}
+    }
     res.status(500).json({
       error: "Failed to perform audit",
       details: error.message,
-      stack: error.stack,
     });
   }
 });
 
-/**
- * ✅ GET /api/audit/latest
- * Fetch recent audit results
- */
 router.get("/latest", async (req, res) => {
   try {
     const latestAudit = await Audit.findOne().sort({ timestamp: -1 });
@@ -79,7 +87,7 @@ router.get("/latest", async (req, res) => {
     }
     res.json(latestAudit);
   } catch (error) {
-    console.error("Error fetching latest audit:", error);
+    console.error("❌ Error fetching latest audit:", error);
     res.status(500).json({
       error: "Failed to fetch latest audit",
       details: error.message,
