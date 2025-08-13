@@ -3,68 +3,24 @@ const router = express.Router();
 const Audit = require("../models/AuditResult");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
-const path = require("path");
+
+// Load axe.min.js from axe-core package
+const axeScript = fs.readFileSync(
+  require.resolve("axe-core/axe.min.js"),
+  "utf8"
+);
 
 /**
  * ✅ POST /api/audit
  * Run accessibility audit for a given URL
  */
-router.post("/", async (req, res) => {
-  const { url } = req.body;
-
-  try {
-    console.log(
-      "Using Chrome path:",
-      process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
-    );
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--no-zygote",
-      ],
-    });
-
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle2" });
-
-    // Inject axe.min.js
-    const axePath = path.join(__dirname, "..", "axe.min.js");
-    const axeScript = fs.readFileSync(axePath, "utf8");
-    await page.evaluate(axeScript);
-
-    // Run axe in browser context
-    const results = await page.evaluate(async () => {
-      return await axe.run();
-    });
-
-    await browser.close();
-
-    const audit = new Audit({
-      url,
-      score: Math.max(0, 100 - results.violations.length * 5),
-      issues: results.violations.map((issue) => ({
-        type: issue.id,
-        message: issue.description,
-        impact: issue.impact,
-        help: issue.help,
-      })),
-    });
-
-    await audit.save();
-    res.json(audit);
-  } catch (error) {
-    console.error("Error during audit:", error);
-    res.status(500).json({ error: "Failed to perform audit" });
-  }
-});
+const { url } = req.body;
+if (!url) {
+  return res.status(400).json({ error: "URL is required" });
+}
 
 /**
- * ✅ GET /api/audit
+ * ✅ GET /api/audit/latest
  * Fetch recent audit results
  */
 router.get("/latest", async (req, res) => {
@@ -76,7 +32,10 @@ router.get("/latest", async (req, res) => {
     res.json(latestAudit);
   } catch (error) {
     console.error("Error fetching latest audit:", error);
-    res.status(500).json({ error: "Failed to fetch latest audit" });
+    res.status(500).json({
+      error: "Failed to fetch latest audit",
+      details: error.message,
+    });
   }
 });
 
