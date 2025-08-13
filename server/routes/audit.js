@@ -13,6 +13,10 @@ router.post("/", async (req, res) => {
   const { url } = req.body;
 
   try {
+     console.log(
+      "Using Chrome path:",
+      process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
+    );
     const browser = await puppeteer.launch({
       headless: true,
       executablePath:
@@ -25,6 +29,7 @@ router.post("/", async (req, res) => {
         "--no-zygote",
       ],
     });
+
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "networkidle2" });
 
