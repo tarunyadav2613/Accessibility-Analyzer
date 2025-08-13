@@ -4,10 +4,10 @@
   "main": "index.js",
   "scripts": {
   "start": "node index.js",
-  "postinstall": "npx puppeteer browsers install chrome"
+  "postinstall": "npx puppeteer browsers install chrome --platform=linux"
 },
   "dependencies": {
-    "axe-core": "^4.10.3",
+    "axe-core": "^4.9.0",
     "axios": "^1.11.0",
     "chrome-launcher": "^1.2.0",
     "cors": "^2.8.5",
@@ -15,6 +15,7 @@
     "express": "^5.1.0",
     "lighthouse": "^12.8.0",
     "mongoose": "^8.16.5",
-    "puppeteer": "^24.15.0"
+    "puppeteer": "^22.7.0"
+
   }
 }

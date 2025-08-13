@@ -21,13 +21,11 @@ router.post("/", async (req, res) => {
 
   let browser;
   try {
-    console.log(
-      "🚀 Launching Puppeteer at:",
-      process.env.PUPPETEER_EXECUTABLE_PATH
-    );
+    console.log("🚀 Launching Puppeteer at:");
 
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: execPath,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
