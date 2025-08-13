@@ -13,14 +13,13 @@ router.post("/", async (req, res) => {
   const { url } = req.body;
 
   try {
-     console.log(
+    console.log(
       "Using Chrome path:",
       process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
     );
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath:
-        process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+      executablePath: puppeteer.executablePath(), // Always use Puppeteer's bundled Chrome
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
