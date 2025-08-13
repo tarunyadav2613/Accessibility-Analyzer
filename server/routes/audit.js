@@ -21,11 +21,13 @@ router.post("/", async (req, res) => {
 
   let browser;
   try {
-    console.log("🚀 Launching Puppeteer at:");
+    // Use Puppeteer's downloaded Chromium path
+    const chromiumPath = puppeteer.executablePath();
+    console.log("🚀 Using Chromium at:", chromiumPath);
 
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
-      executablePath: execPath,
+      executablePath: chromiumPath,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -38,32 +40,26 @@ router.post("/", async (req, res) => {
     const page = await browser.newPage();
 
     console.log("🌐 Navigating to: ${url}");
-    await page
-      .goto(url, { waitUntil: "networkidle2", timeout: 30000 })
-      .catch((err) => {
-        throw new Error("Navigation failed: " + err.message);
-      });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 })
+      .catch(err => { throw new Error("Navigation failed: " + err.message); });
 
     console.log("🔍 Injecting axe-core script...");
-    await page.evaluate(axeScript).catch((err) => {
-      throw new Error("Failed to inject axe-core: " + err.message);
-    });
+    await page.evaluate(axeScript)
+      .catch(err => { throw new Error("Failed to inject axe-core: " + err.message); });
 
     console.log("📊 Running accessibility audit...");
-    const results = await page
-      .evaluate(async () => await axe.run())
-      .catch((err) => {
-        throw new Error("axe.run() failed: " + err.message);
-      });
+    const results = await page.evaluate(async () => {
+      return await axe.run();
+    }).catch(err => { throw new Error("axe.run() failed: " + err.message); });
 
     console.log("✅ Audit completed, closing browser...");
     await browser.close();
 
-    console.log("💾 Saving audit result...");
+    console.log("💾 Saving audit result to DB...");
     const audit = new Audit({
       url,
       score: Math.max(0, 100 - results.violations.length * 5),
-      issues: results.violations.map((issue) => ({
+      issues: results.violations.map(issue => ({
         type: issue.id,
         message: issue.description,
         impact: issue.impact,
@@ -72,13 +68,14 @@ router.post("/", async (req, res) => {
     });
 
     await audit.save();
+    console.log("📌 Audit saved successfully.");
+
     res.json(audit);
+
   } catch (error) {
     console.error("❌ Error during audit:", error);
     if (browser) {
-      try {
-        await browser.close();
-      } catch (_) {}
+      try { await browser.close(); } catch (_) {}
     }
     res.status(500).json({
       error: "Failed to perform audit",
